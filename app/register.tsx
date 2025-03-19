@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Linking 
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
+import * as WebBrowser from "expo-web-browser";
+// import { LINKEDIN_CLIENT_ID } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LINKEDIN_CLIENT_ID = "78psg7r0writst"
+
+const API_URL = 'http://192.168.178.225:3000';
 
 interface RegistrationFormProps {
   onComplete: () => void;
+}
+
+interface LinkedInUser {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
 }
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
@@ -15,6 +29,27 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [errors, setErrors] = useState<{ name?: string; linkedinUrl?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<LinkedInUser | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationId, setVerificationId] = useState<string | null>(null);
+  const [otp, setOtp] = useState('');
+
+  useEffect(() => {
+    const checkUserLogin = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('linkedInUser');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setName(parsedUser.name || '');
+        }
+      } catch (error) {
+        console.error('Error retrieving user data:', error);
+      }
+    };
+
+    checkUserLogin();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: { name?: string; linkedinUrl?: string } = {};
@@ -23,9 +58,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
       newErrors.name = 'Name is required';
     }
 
-    if (!linkedinUrl.trim()) {
+    if (!linkedinUrl.trim() && !user) {
       newErrors.linkedinUrl = 'LinkedIn URL is required';
-    } else if (!linkedinUrl.includes('linkedin.com/')) {
+    } else if (linkedinUrl && !linkedinUrl.includes('linkedin.com/')) {
       newErrors.linkedinUrl = 'Please enter a valid LinkedIn URL';
     }
 
@@ -39,13 +74,64 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      router.push('/communities')
+      // Call onComplete if provided
+      if (onComplete) {
+        onComplete();
+      }
+      router.push('/communities');
     }, 800);
   };
 
-  const handleLinkedInLogin = () => {
-    // Open LinkedIn Auth (Placeholder)
-    Linking.openURL('https://www.linkedin.com/login');
+  const handleLinkedInLogin = async () => {
+    try {
+      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(`${API_URL}/api/linkedin/callback`)}&scope=openid%20email%20profile%20w_member_social`;
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        `${API_URL}/api/linkedin/callback`
+      );
+
+      if (result.type === 'success') {
+        const url = result.url;
+
+        const code = url.includes('code=')
+          ? url.split('code=')[1].split('&')[0]
+          : null;
+
+        if (code) {
+          const response = await fetch(`${API_URL}/api/linkedin/callback?code=${code}`);
+
+          if (!response.ok) {
+            throw new Error('Failed to authenticate with LinkedIn');
+          }
+
+          const data = await response.json();
+
+          if (data.userData) {
+            await AsyncStorage.setItem('linkedInUser', JSON.stringify(data.userData));
+            setUser(data.userData);
+            setName(data.userData.name || '');
+
+            if (data.userData.sub) {
+              setLinkedinUrl(`https://linkedin.com/in/${data.userData.sub}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('LinkedIn authentication error:', error);
+      Alert.alert('Authentication Error', 'Failed to authenticate with LinkedIn. Please try again.');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('linkedInUser');
+      setUser(null);
+      setName('');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -61,6 +147,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
 
       {/* Form */}
       <View style={styles.formContainer}>
+        {user ? (
+          <View style={styles.linkedInProfile}>
+            <Text style={styles.profileText}>
+              Connected as: {user.name}
+            </Text>
+            <Text style={styles.profileEmail}>
+              {user.email}
+            </Text>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutText}>Disconnect</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         <Text style={styles.label}>Your Name</Text>
         <TextInput
           style={[styles.input, errors.name && styles.inputError]}
@@ -110,7 +213,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     alignItems: 'center',
     padding: 20,
     backgroundColor: '#F9FAFB',
@@ -144,6 +247,31 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 3,
+  },
+  linkedInProfile: {
+    backgroundColor: '#E0F2FE',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  profileText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#0369A1',
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: '#0369A1',
+    marginTop: 2,
+  },
+  logoutButton: {
+    marginTop: 8,
+    alignSelf: 'flex-end',
+  },
+  logoutText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '500',
   },
   label: {
     fontSize: 14,
@@ -218,6 +346,44 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     fontWeight: 'bold',
   },
+  // container: {
+  //   flex: 1,
+  //   justifyContent: "center",
+  //   alignItems: 'center',
+  //   padding: 20,
+  //   backgroundColor: '#F9FAFB',
+  // },
+  // title: {
+  //   fontSize: 22,
+  //   fontWeight: 'bold',
+  //   color: '#1F2937',
+  //   marginBottom: 20,
+  // },
+  // input: {
+  //   width: '100%',
+  //   padding: 12,
+  //   borderWidth: 1,
+  //   borderColor: '#D1D5DB',
+  //   borderRadius: 8,
+  //   marginBottom: 10,
+  //   backgroundColor: '#F9FAFB',
+  // },
+  button: {
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+  },
+  // disabledButton: {
+  //   backgroundColor: '#9CA3AF',
+  // },
+  // buttonText: {
+  //   color: '#FFF',
+  //   fontSize: 16,
+  //   fontWeight: 'bold',
+  // },
 });
 
 export default RegistrationForm;
