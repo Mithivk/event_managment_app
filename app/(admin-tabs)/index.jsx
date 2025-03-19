@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
-import { useUser } from '../context/UserContext';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 
-
-// Mock data generation function
 const generateMockPosts = () => {
   const communities = ['IT', 'Cybersecurity', 'Design', 'Marketing', 'Finance', 'Healthcare', 'Education'];
   const avatars = [
@@ -54,9 +51,8 @@ const generateMockPosts = () => {
 };
 
 const Home = () => {
-  const { user } = useUser();
   const navigation = useNavigation();
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,15 +74,19 @@ const Home = () => {
           contentContainerStyle={styles.list}
         />
       )}
+
+      {/* Floating Action Button to Create Post */}
+      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreatePost')}>
+        <Feather name="plus" size={24} color="white" />
+      </TouchableOpacity>
     </View>
   );
 };
 
 // Post Card Component
-const PostCard = ({ post }: { post: any }) => {
+const PostCard = ({ post }) => {
   return (
     <View style={styles.card}>
-      {/* Post Header */}
       <View style={styles.cardHeader}>
         <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
         <View>
@@ -99,23 +99,20 @@ const PostCard = ({ post }: { post: any }) => {
           </View>
         </View>
       </View>
-
-      {/* Post Content */}
       <Text style={styles.content}>{post.content}</Text>
       {post.image && <Image source={{ uri: post.image }} style={styles.postImage} />}
 
-      {/* Actions Row */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.action}>
-        <Feather name="thumbs-up" size={18} color="#777" />
+          <Feather name="thumbs-up" size={18} color="#777" />
           <Text style={styles.actionText}>{post.likes}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.action}>
-        <Feather name="message-circle" size={18} color="#777" />
+          <Feather name="message-circle" size={18} color="#777" />
           <Text style={styles.actionText}>{post.comments}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.action}>
-        <Feather name="share-2" size={18} color="#777" />
+          <Feather name="share-2" size={18} color="#777" />
         </TouchableOpacity>
       </View>
     </View>
@@ -127,20 +124,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#4D80B3',
   },
   loader: {
     marginTop: 50,
@@ -161,14 +144,22 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#007bff',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   avatar: {
     width: 40,

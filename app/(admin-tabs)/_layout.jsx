@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, TouchableOpacity, TextInput, View, Text } from 'react-native';
 import { Tabs, useNavigation } from 'expo-router';
-import { Chrome as Home, Calendar, Bell, User, MessageCircle, Search, X } from 'lucide-react-native';
+import { Users, Calendar, Megaphone, User, Search, MessageCircle, X } from 'lucide-react-native';
 
-export default function TabLayout() {
+export default function AdminTabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -16,10 +16,10 @@ export default function TabLayout() {
         headerRight: () => <HeaderIcons />,
       }}>
       <Tabs.Screen
-        name="index"
+        name="community"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+          title: 'Community',
+          tabBarIcon: ({ color, size }) => <Users size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -30,10 +30,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="alerts"
+        name="index"
         options={{
-          title: 'Alerts',
-          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+          title: 'Updates',
+          tabBarIcon: ({ color, size }) => <Megaphone size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -47,7 +47,7 @@ export default function TabLayout() {
   );
 }
 
-// Header Right Icons Component
+// Header Icons Component
 const HeaderIcons = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#f0f0f0',
   },
   tabBarLabel: {
-    fontFamily: 'Inter-Regular',
     fontSize: 12,
+    fontWeight: '600',
   },
   header: {
     backgroundColor: '#fff',

@@ -26,17 +26,6 @@ const Alerts = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>Stay updated with community activities.</Text>
-        </View>
-        <TouchableOpacity>
-          <Icon name="dots-horizontal" size={24} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-
       {/* Alert List */}
       <FlatList
         data={alerts}

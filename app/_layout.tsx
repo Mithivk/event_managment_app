@@ -34,6 +34,8 @@ export default function RootLayout() {
         <Stack.Screen name="register" />
         <Stack.Screen name="communities" />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(admin-tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="eventDetails" options={{ presentation: 'modal' }} />
       </Stack>
     </UserProvider>
       <StatusBar style="auto" />

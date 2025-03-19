@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, FlatList, Image, TouchableOpacity } from 'react-native';
-import { Search } from 'lucide-react-native';
+import { Search, ArrowLeft } from 'lucide-react-native';
+import { useNavigation,useRouter } from 'expo-router';
 
 const CHATS = [
   {
@@ -21,14 +22,29 @@ const CHATS = [
     time: '1h ago',
     unread: 0,
   },
-  // Add more chats as needed
+  {
+    id: '3',
+    name: 'Developers Hub',
+    type: 'group',
+    avatar: 'https://images.unsplash.com/photo-1604072363256-b766f3181b4a?w=200',
+    lastMessage: 'John: Let’s review the new PRs.',
+    time: '5h ago',
+    unread: 2,
+  },
 ];
 
 export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigation = useNavigation(); // Navigation Hook
+
+  // Filter chats based on search input
+  const filteredChats = CHATS.filter(chat =>
+    chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const router = useRouter();
 
   const renderChat = ({ item }) => (
-    <TouchableOpacity style={styles.chatItem}>
+    <TouchableOpacity style={styles.chatItem} onPress={() => router.push(`/messages/${item.id}`)}>
       <Image source={{ uri: item.avatar }} style={styles.avatar} />
       <View style={styles.chatInfo}>
         <View style={styles.chatHeader}>
@@ -51,8 +67,15 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Messages</Text>
-      
+      {/* Back Button & Title */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.navigate("(tabs)")} style={styles.backButton}>
+          <ArrowLeft size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Messages</Text>
+      </View>
+
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Search size={20} color="#666" />
         <TextInput
@@ -63,17 +86,20 @@ export default function MessagesScreen() {
         />
       </View>
 
+      {/* Chat List */}
       <FlatList
-        data={CHATS}
+        data={filteredChats}
         renderItem={renderChat}
         keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.chatList}
+        ListEmptyComponent={<Text style={styles.noResults}>No chats found</Text>}
       />
     </View>
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -81,10 +107,18 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 60,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    marginRight: 10,
+    padding: 8,
+  },
   title: {
     fontFamily: 'Inter-Bold',
-    fontSize: 32,
-    marginBottom: 20,
+    fontSize: 28,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -158,5 +192,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#fff',
     fontSize: 12,
+  },
+  noResults: {
+    textAlign: 'center',
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: '#666',
+    marginTop: 20,
   },
 });

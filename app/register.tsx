@@ -1,65 +1,65 @@
 import React, { useState } from 'react';
 import { 
-  View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Linking 
+  View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Modal 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { router } from 'expo-router';
 
-interface RegistrationFormProps {
-  onComplete: () => void;
-}
+const DUMMY_PASSKEY = "admin123"; // Dummy passkey
 
-const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
+const RegistrationForm = () => {
   const [name, setName] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; linkedinUrl?: string }>({});
+  const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [adminModalVisible, setAdminModalVisible] = useState(false);
+  const [adminPasskey, setAdminPasskey] = useState('');
 
-  const validateForm = (): boolean => {
-    const newErrors: { name?: string; linkedinUrl?: string } = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
+  const validateForm = () => {
+    const newErrors = {};
+    if (!name.trim()) newErrors.name = 'Name is required';
     if (!linkedinUrl.trim()) {
       newErrors.linkedinUrl = 'LinkedIn URL is required';
     } else if (!linkedinUrl.includes('linkedin.com/')) {
       newErrors.linkedinUrl = 'Please enter a valid LinkedIn URL';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = () => {
     if (!validateForm()) return;
-
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      router.push('/communities')
+      router.push('/communities');
     }, 800);
   };
 
-  const handleLinkedInLogin = () => {
-    // Open LinkedIn Auth (Placeholder)
-    Linking.openURL('https://www.linkedin.com/login');
+  const handleAdminAccess = () => {
+    setAdminModalVisible(true);
+  };
+
+  const verifyAdminPasskey = () => {
+    if (adminPasskey === DUMMY_PASSKEY) {
+      setAdminModalVisible(false);
+      Alert.alert("Access Granted", "Welcome, Admin!");
+      router.push('/(admin-tabs)'); // Navigate to admin screen
+    } else {
+      Alert.alert("Access Denied", "Incorrect passkey.");
+    }
   };
 
   return (
     <Animated.View style={styles.container} entering={FadeIn.duration(500)}>
-      {/* User Icon */}
       <View style={styles.iconContainer}>
         <Icon name="user" size={24} color="#2563EB" />
       </View>
 
-      {/* Title & Subtitle */}
       <Text style={styles.title}>Create your profile</Text>
       <Text style={styles.subtitle}>Let's get to know you better</Text>
 
-      {/* Form */}
       <View style={styles.formContainer}>
         <Text style={styles.label}>Your Name</Text>
         <TextInput
@@ -79,7 +79,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
         />
         {errors.linkedinUrl && <Text style={styles.errorText}>{errors.linkedinUrl}</Text>}
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitButton, isSubmitting && styles.disabledButton]}
           onPress={handleSubmit}
@@ -87,22 +86,39 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete }) => {
         >
           {isSubmitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Continue</Text>}
         </TouchableOpacity>
-
-        {/* Login with LinkedIn Button */}
-        <TouchableOpacity style={styles.linkedinButton} onPress={handleLinkedInLogin}>
-          <Icon name="linkedin" size={20} color="#FFF" />
-          <Text style={styles.linkedinText}>Continue with LinkedIn</Text>
-        </TouchableOpacity>
       </View>
-
-      {/* Terms & Conditions + Login Link */}
-      <Text style={styles.termsText}>
-        By continuing, you agree to our <Text style={styles.link}>Terms of Service</Text> and <Text style={styles.link}>Privacy Policy</Text>.
-      </Text>
 
       <Text style={styles.loginText}>
         Already have an account? <Text style={styles.loginLink}>Log in</Text>
       </Text>
+
+      <TouchableOpacity onPress={handleAdminAccess}>
+        <Text style={styles.adminLink}>Admin? Click here</Text>
+      </TouchableOpacity>
+
+      {/* Admin Passkey Modal */}
+      <Modal visible={adminModalVisible} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Admin Access</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter passkey"
+              secureTextEntry
+              value={adminPasskey}
+              onChangeText={setAdminPasskey}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setAdminModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitButton} onPress={verifyAdminPasskey}>
+                <Text style={styles.buttonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 };
@@ -145,12 +161,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 5,
-  },
   input: {
     width: '100%',
     padding: 10,
@@ -160,14 +170,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: '#F9FAFB',
   },
-  inputError: {
-    borderColor: '#DC2626',
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 12,
-    marginBottom: 10,
-  },
   submitButton: {
     backgroundColor: '#2563EB',
     padding: 12,
@@ -175,47 +177,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  disabledButton: {
-    backgroundColor: '#9CA3AF',
-  },
   buttonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  linkedinButton: {
-    backgroundColor: '#0A66C2',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  linkedinText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  termsText: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
+  adminLink: {
+    fontSize: 14,
+    color: '#FF3B30',
     marginTop: 15,
-  },
-  link: {
-    color: '#2563EB',
     fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
-  loginText: {
-    fontSize: 12,
-    color: '#6B7280',
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: 300,
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalInput: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    marginBottom: 15,
     textAlign: 'center',
-    marginTop: 10,
   },
-  loginLink: {
-    color: '#2563EB',
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#DC2626',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginRight: 5,
+  },
+  cancelButtonText: {
+    color: '#FFF',
     fontWeight: 'bold',
   },
 });
